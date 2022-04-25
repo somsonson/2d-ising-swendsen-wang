@@ -1,36 +1,49 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+from numba import jit
 
+@jit(nopython=True)
 def decision(probability):
     return random.random() < probability
 
-
+@jit(nopython=True)
 def initgrid(N_s):
     #initializes square grid with N_s x N_s dimension
     sigma = np.asarray([1, 0])
-    x = np.linspace(0, N_s - 1, N_s).astype(int)
-    y = np.linspace(0, N_s - 1, N_s).astype(int)
+    x = np.arange(N_s)
+    y = np.arange(N_s)
 
-    grid = np.array([x for yy in range(0, len(y))])
+    grid = np.zeros((N_s,N_s))
 
     for xx in x:
         for yy in y:
-            grid[xx][yy] = random.choices(sigma, k=1, weights=[50, 50])[0]
+            if decision(0.5) == True:
+                grid[xx][yy] =1
+            else:
+                grid[xx][yy] =0
     return grid ,x , y
 
+@jit(nopython=True)
 def fill_bonds_identify_clusters(p , grid):
     # this function takes a grid including and casts bonds with probability p, then it identifies all clusters
     N_s = len(grid)
-    x = np.linspace(0, N_s - 1, N_s).astype(int)
-    y = np.linspace(0, N_s - 1, N_s).astype(int)
+    x = np.arange(N_s)
+    y = np.arange(N_s)
     prob = p
     label_id = 1
+    last = 0
     label = np.zeros((N_s, N_s))
     label_neg = np.zeros((N_s, N_s))
-    for xx in np.append(x, 0):
-        for yy in np.append(y, 0):
-            if grid[xx][yy] == 1. and decision(prob):
+    for xx in np.append(x, len(x)):
+        last = 0
+        for yy in np.append(y, len(y)):
+            #print(xx)
+            if xx == len(x) or yy == len(y):
+                last = 1
+            xx = xx % N_s
+            yy = yy % N_s
+            if (grid[xx][yy] == 1. and decision(prob)) or (grid[xx][yy] == 1. and last == 1):
                 # use modulo here to fullfill the boundary conditon
                 left = grid[(xx - 1) % N_s, yy]
                 above = grid[xx, (yy - 1) % N_s]
@@ -88,8 +101,8 @@ def fill_bonds_identify_clusters(p , grid):
                     # if label[xx,yy] == label[xx,(yy+1)%N_s] and label[xx,(yy+1)%N_s] != 0:
                     #    label[xx, yy] = label_id
 
-    print(grid)
-    print(label)
+    #print(grid)
+    #print(label)
 
     label_pos = label
 
@@ -97,7 +110,7 @@ def fill_bonds_identify_clusters(p , grid):
 
     # now check for clusters in the grid using Hoshen–Kopelman_algorithm
 
-    print(grid)
+    #print(grid)
 
     label_id = 1
     label = np.zeros((N_s, N_s))
@@ -159,24 +172,24 @@ def fill_bonds_identify_clusters(p , grid):
                     pass
 
 
-    print(grid - 1)
+    #print(grid - 1)
     grid = grid - 1
     # print(label)
-    print(label)
-    print(label_pos)
+    #print(label)
+    #print(label_pos)
 
     label_complete = label_pos - label
     return label_complete
 
 
-
+@jit(nopython=True)
 def flip_cluster(grid, label_complete):
     N_s = len(grid)
-    x = np.linspace(0, N_s - 1, N_s).astype(int)
-    y = np.linspace(0, N_s - 1, N_s).astype(int)
+    x = np.arange(N_s)
+    y = np.arange(N_s)
     newgrid = np.zeros((N_s, N_s))
 
-    flipped_values = np.array([])
+    flipped_values = np.array([0.5])
 
     for xx in x:
         for yy in y:
